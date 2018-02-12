@@ -1,45 +1,61 @@
-library(reshape2)
+if(!file.exists("./data")){dir.create("./data")}
+fileUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(fileUrl,destfile="./data/Dataset.zip")
 
-filename <- "getdata_dataset.zip"
+# Unzip dataSet to /data directory
+unzip(zipfile="./data/Dataset.zip",exdir="./data")
 
-if (!file.exists(filename)){
-    URL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
-    download.file(URL, filename)
-}  
-if (!file.exists("UCI HAR Dataset")) { 
-    unzip(filename) 
-}
+# Reading trainings tables:
+x_train <- read.table("./data/UCI HAR Dataset/train/X_train.txt")
+y_train <- read.table("./data/UCI HAR Dataset/train/y_train.txt")
+subject_train <- read.table("./data/UCI HAR Dataset/train/subject_train.txt")
 
+# Reading testing tables:
+x_test <- read.table("./data/UCI HAR Dataset/test/X_test.txt")
+y_test <- read.table("./data/UCI HAR Dataset/test/y_test.txt")
+subject_test <- read.table("./data/UCI HAR Dataset/test/subject_test.txt")
 
-actLabels <- read.table("UCI HAR Dataset/activity_labels.txt")
-actLabels[,2] <- as.character(activityLabels[,2])
-feat <- read.table("UCI HAR Dataset/features.txt")
-feat[,2] <- as.character(features[,2])
+# Reading feature vector:
+features <- read.table('./data/UCI HAR Dataset/features.txt')
 
-featWanted <- grep(".*mean.*|.*std.*", features[,2])
-featWanted.names <- features[featWanted,2]
-featWanted.names = gsub('-mean', 'Mean', featWanted.names)
-featWanted.names = gsub('-std', 'Std', featWanted.names)
-featWanted.names <- gsub('[-()]', '', featWanted.names)
+# Reading activity labels:
+activityLabels = read.table('./data/UCI HAR Dataset/activity_labels.txt')
 
+# Reading trainings tables:
+x_train <- read.table("./data/UCI HAR Dataset/train/X_train.txt")
+y_train <- read.table("./data/UCI HAR Dataset/train/y_train.txt")
+subject_train <- read.table("./data/UCI HAR Dataset/train/subject_train.txt")
 
-train <- read.table("UCI HAR Dataset/train/X_train.txt")[featWanted]
-trainAct <- read.table("UCI HAR Dataset/train/Y_train.txt")
-trainSubjects <- read.table("UCI HAR Dataset/train/subject_train.txt")
-train <- cbind(trainSubjects, trainActivities, train)
+# Reading testing tables:
+x_test <- read.table("./data/UCI HAR Dataset/test/X_test.txt")
+y_test <- read.table("./data/UCI HAR Dataset/test/y_test.txt")
+subject_test <- read.table("./data/UCI HAR Dataset/test/subject_test.txt")
 
-test <- read.table("UCI HAR Dataset/test/X_test.txt")[featWanted]
-testAct <- read.table("UCI HAR Dataset/test/Y_test.txt")
-testSubjects <- read.table("UCI HAR Dataset/test/subject_test.txt")
-test <- cbind(testSubjects, testAct, test)
+# Reading feature vector:
+features <- read.table('./data/UCI HAR Dataset/features.txt')
 
-allData <- rbind(train, test)
-colnames(allData) <- c("subject", "activity", featWanted.names)
+# Reading activity labels:
+activityLabels = read.table('./data/UCI HAR Dataset/activity_labels.txt')
 
-allData$activity <- factor(allData$activity, levels = actLabels[,1], labels = actLabels[,2])
-allData$subject <- as.factor(allData$subject)
+mrg_train <- cbind(y_train, subject_train, x_train)
+mrg_test <- cbind(y_test, subject_test, x_test)
+setAllInOne <- rbind(mrg_train, mrg_test)
 
-allData.melted <- melt(allData, id = c("subject", "activity"))
-allData.mean <- dcast(allData.melted, subject + activity ~ variable, mean)
+colNames <- colnames(setAllInOne)
 
-write.table(allData.mean, "tidy.txt", row.names = FALSE, quote = FALSE)
+mean_and_std <- (grepl("activityId" , colNames) | 
+                 grepl("subjectId" , colNames) | 
+                 grepl("mean.." , colNames) | 
+                 grepl("std.." , colNames) 
+                 )
+
+setForMeanAndStd <- setAllInOne[ , mean_and_std == TRUE]
+
+setWithActivityNames <- merge(setForMeanAndStd, activityLabels,
+                              by='activityId',
+                              all.x=TRUE)
+
+secTidySet <- aggregate(. ~subjectId + activityId, setWithActivityNames, mean)
+secTidySet <- secTidySet[order(secTidySet$subjectId, secTidySet$activityId),]
+
+rite.table(secTidySet, "secTidySet.txt", row.name=FALSE)
