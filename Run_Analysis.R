@@ -58,4 +58,4 @@ setWithActivityNames <- merge(setForMeanAndStd, activityLabels,
 secTidySet <- aggregate(. ~subjectId + activityId, setWithActivityNames, mean)
 secTidySet <- secTidySet[order(secTidySet$subjectId, secTidySet$activityId),]
 
-rite.table(secTidySet, "secTidySet.txt", row.name=FALSE)
+Write.table(secTidySet, "secTidySet.txt", row.name=FALSE)
